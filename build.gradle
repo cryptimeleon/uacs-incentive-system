@@ -1,0 +1,25 @@
+plugins {
+    id 'java-library'
+}
+
+repositories {
+    jcenter()
+}
+
+dependencies {
+    // Use JUnit test framework
+    testImplementation 'junit:junit:4.12'
+    
+    repositories {
+	    mavenCentral()
+	}
+
+    test {
+        useJUnit()
+    }
+	
+	dependencies {
+	    api group: 'org.cryptimeleon', name: 'math', version: '2.0.0-SNAPSHOT'
+	    api group: 'org.cryptimeleon', name: 'craco', version: '2.0.0-SNAPSHOT'
+    }
+}
