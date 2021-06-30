@@ -30,7 +30,7 @@ public class IssueJoinProtocol extends BaseProtocol {
 
     @Override
     public IssueJoinProtocolInstance instantiateProtocol(String role, CommonInput commonInput, SecretInput secretInput) {
-        return new IssueJoinProtocolInstance(role, ((IssueCommonInput) commonInput).upk, );
+        return new IssueJoinProtocolInstance(((IssueCommonInput) commonInput).upk, pp.zp.getUniformlyRandomElement()); //TODO correct this.
     }
 
     public IssueJoinProtocolInstance instantiateUser(GroupElement upk, Zn.ZnElement usk) {
