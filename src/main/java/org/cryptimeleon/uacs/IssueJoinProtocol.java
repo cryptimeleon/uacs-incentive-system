@@ -2,17 +2,13 @@ package org.cryptimeleon.uacs;
 
 import org.cryptimeleon.craco.protocols.CommonInput;
 import org.cryptimeleon.craco.protocols.SecretInput;
-import org.cryptimeleon.craco.protocols.TwoPartyProtocolInstance;
-import org.cryptimeleon.craco.protocols.arguments.sigma.ZnChallengeSpace;
-import org.cryptimeleon.craco.protocols.arguments.sigma.schnorr.DelegateProtocol;
-import org.cryptimeleon.craco.protocols.arguments.sigma.schnorr.LinearStatementFragment;
-import org.cryptimeleon.craco.protocols.arguments.sigma.schnorr.SendThenDelegateFragment;
-import org.cryptimeleon.craco.protocols.arguments.sigma.schnorr.variables.SchnorrZnVariable;
+import org.cryptimeleon.craco.protocols.arguments.InteractiveArgument;
 import org.cryptimeleon.craco.protocols.base.BaseProtocol;
 import org.cryptimeleon.craco.protocols.base.BaseProtocolInstance;
+import org.cryptimeleon.craco.protocols.base.BaseSchnorrProof;
 import org.cryptimeleon.craco.sig.ps.PSExtendedVerificationKey;
+import org.cryptimeleon.craco.sig.ps.PSSignature;
 import org.cryptimeleon.craco.sig.ps.PSSigningKey;
-import org.cryptimeleon.craco.sig.ps.PSVerificationKey;
 import org.cryptimeleon.math.structures.cartesian.Vector;
 import org.cryptimeleon.math.structures.groups.GroupElement;
 import org.cryptimeleon.math.structures.rings.cartesian.RingElementVector;
@@ -30,15 +26,19 @@ public class IssueJoinProtocol extends BaseProtocol {
 
     @Override
     public IssueJoinProtocolInstance instantiateProtocol(String role, CommonInput commonInput, SecretInput secretInput) {
-        return new IssueJoinProtocolInstance(((IssueCommonInput) commonInput).upk, pp.zp.getUniformlyRandomElement()); //TODO correct this.
+        if (role.equals("user"))
+            return new IssueJoinProtocolInstance(((IssueCommonInput) commonInput).upk, ((UacsIncentiveSystem.UserInput) secretInput).usk);
+        if (role.equals("provider"))
+            return new IssueJoinProtocolInstance(((IssueCommonInput) commonInput).upk, ((UacsIncentiveSystem.ProviderInput) secretInput).sk);
+        throw new IllegalArgumentException("Unknown role");
     }
 
     public IssueJoinProtocolInstance instantiateUser(GroupElement upk, Zn.ZnElement usk) {
-        return instantiateProtocol("user", new IssueCommonInput(upk), new IssueUserInput(usk));
+        return instantiateProtocol("user", new IssueCommonInput(upk), new UacsIncentiveSystem.UserInput(usk));
     }
 
     public IssueJoinProtocolInstance instantiateProvider(GroupElement upk, PSSigningKey sk) {
-        return instantiateProtocol("provider", new IssueCommonInput(upk), new IssueProviderInput(sk));
+        return instantiateProtocol("provider", new IssueCommonInput(upk), new UacsIncentiveSystem.ProviderInput(sk));
     }
 
     public static class IssueCommonInput implements CommonInput {
@@ -46,22 +46,6 @@ public class IssueJoinProtocol extends BaseProtocol {
 
         public IssueCommonInput(GroupElement upk) {
             this.upk = upk;
-        }
-    }
-
-    public static class IssueUserInput implements SecretInput {
-        public final Zn.ZnElement usk;
-
-        public IssueUserInput(Zn.ZnElement usk) {
-            this.usk = usk;
-        }
-    }
-
-    public static class IssueProviderInput implements SecretInput {
-        public final PSSigningKey sk;
-
-        public IssueProviderInput(PSSigningKey sk) {
-            this.sk = sk;
         }
     }
 
@@ -113,14 +97,17 @@ public class IssueJoinProtocol extends BaseProtocol {
                     dsidPublic = pp.w.pow(dsid);
                     c = pk.getGroup1ElementsYi().innerProduct(RingElementVector.of(usk, dsid, dsrnd, pp.zp.getZeroElement())).op(pk.getGroup1ElementG().pow(r));
                     send("c", c.getRepresentation());
-                    runSubprotocolConcurrently("wellFormednessProof", new WellFormednessProof().getProverInstance(null, null));
+                    runArgumentConcurrently("wellFormednessProof", getWellFormednessProof().instantiateProver(null, BaseSchnorrProof.witnessOf(this)));
                     break;
                 case 4: //prove well-formedness (response)
                     break;
-                case 6: //receive blinded signature
+                case 6: //receive blinded signature and unblind
                     sigma0prime = pp.group.getG1().restoreElement(receive("sigma0prime"));
-                    sigma1prime = pp.group.getG1().restoreElement(receive("sigma1prime"));
-
+                    sigma1prime = pp.group.getG1().restoreElement(receive("sigma1prime")).op(sigma0prime.pow(r.neg()));
+                    //TODO verify token
+                    if (!pp.verifyToken(getUserResult(), pk))
+                        throw new IllegalStateException("Invalid token");
+                    terminate();
                     break;
             }
         }
@@ -128,59 +115,42 @@ public class IssueJoinProtocol extends BaseProtocol {
         @Override
         protected void doRoundForSecondRole(int round) { //provider
             switch (round) {
-                case 1: //send provider share of dsid
+                case 1 -> { //send provider share of dsid
                     commitUser0 = pp.group.getG1().restoreElement(receive("Cusr0"));
                     commitUser1 = pp.group.getG1().restoreElement(receive("Cusr1"));
                     dsidPrvdr = pp.zp.getUniformlyRandomElement();
                     send("dsidPrvdr", dsidPrvdr.getRepresentation());
                     commitDsid0 = commitUser0.op(pp.g.pow(dsidPrvdr)).compute();
                     commitDsid1 = commitUser1;
-                    break;
-                case 3: //check well-formedness (send challenge)
-                    runSubprotocolConcurrently("wellFormednessProof", new WellFormednessProof().getVerifierInstance(null));
-                    break;
-
+                }
+                case 3 -> { //check well-formedness (send challenge)
+                    c = pp.group.getG1().restoreElement(receive("c"));
+                    runArgumentConcurrently("wellFormednessProof", getWellFormednessProof().instantiateVerifier(null));
+                }
+                case 5 -> { //check well-formedness (got last message). Send signature if valid.
+                    //Check happens implicitly
+                    //Signature:
+                    Zn.ZnElement r = pp.zp.getUniformlyRandomNonzeroElement();
+                    sigma0prime = pk.getGroup1ElementG().pow(r).compute();
+                    sigma1prime = pk.getGroup1ElementG().pow(sk.getExponentX()).op(c).pow(r).compute(); //TODO optimize: precompute X
+                    send("sigma0prime", sigma0prime.getRepresentation());
+                    send("sigma1prime", sigma1prime.getRepresentation());
+                    terminate();
+                }
             }
         }
 
-        public class WellFormednessProof extends DelegateProtocol {
-            @Override
-            protected SendThenDelegateFragment.ProverSpec provideProverSpecWithNoSendFirst(CommonInput commonInput, SecretInput secretInput, SendThenDelegateFragment.ProverSpecBuilder builder) {
-                builder.putWitnessValue("usk", usk);
-                builder.putWitnessValue("dsid", dsid);
-                builder.putWitnessValue("dsrnd", dsrnd);
-                builder.putWitnessValue("r", r);
-                builder.putWitnessValue("open", open);
-                return builder.build();
-            }
+        public Token getUserResult() {
+            return new Token(usk, dsid, dsrnd, pp.zp.getZeroElement(), new PSSignature(sigma0prime, sigma1prime));
+        }
 
-            @Override
-            protected SendThenDelegateFragment.SubprotocolSpec provideSubprotocolSpec(CommonInput commonInput, SendThenDelegateFragment.SubprotocolSpecBuilder builder) {
-                SchnorrZnVariable usk = builder.addZnVariable("usk", pp.zp);
-                SchnorrZnVariable dsid = builder.addZnVariable("dsid", pp.zp);
-                SchnorrZnVariable dsrnd = builder.addZnVariable("dsrnd", pp.zp);
-                SchnorrZnVariable r = builder.addZnVariable("r", pp.zp);
-                SchnorrZnVariable open = builder.addZnVariable("open", pp.zp);
-
-                builder.addSubprotocol("psCommitOpen", new LinearStatementFragment(
-                        c.isEqualTo(pk.getGroup1ElementsYi().expr().innerProduct(Vector.of(usk, dsid, dsrnd, pp.zp.getZeroElement())).op(pk.getGroup1ElementG().pow(r)))
-                ));
-                builder.addSubprotocol("upkWellFormed", new LinearStatementFragment(
-                        upk.isEqualTo(pp.w.pow(usk))
-                ));
-                builder.addSubprotocol("commitDsid0Open", new LinearStatementFragment(
-                        commitDsid0.isEqualTo(pp.g.pow(dsid).op(pp.h.pow(open)))
-                ));
-                builder.addSubprotocol("commitDsid1Open", new LinearStatementFragment(
-                        commitDsid1.isEqualTo(pp.g.pow(open))
-                ));
-                return builder.build();
-            }
-
-            @Override
-            public ZnChallengeSpace getChallengeSpace(CommonInput commonInput) {
-                return new ZnChallengeSpace(pp.zp);
-            }
+        private InteractiveArgument getWellFormednessProof() {
+            return BaseSchnorrProof.builder(pp.zp)
+                    .addLinearStatement("psCommitOpen", c.isEqualTo(pk.getGroup1ElementsYi().expr().innerProduct(Vector.of("usk", "dsid", "dsrnd", pp.zp.getZeroElement())).op(pk.getGroup1ElementG().pow("r"))))
+                    .addLinearStatement("upkWellFormed",  upk.isEqualTo(pp.w.pow("usk")))
+                    .addLinearStatement("commitDsid0Open",  commitDsid0.isEqualTo(pp.g.pow("dsid").op(pp.h.pow("open"))))
+                    .addLinearStatement("commitDsid1Open",  commitDsid1.isEqualTo(pp.g.pow("open")))
+                    .buildInteractiveDamgard(pp.commitmentSchemeForDamgard);
         }
     }
 }
