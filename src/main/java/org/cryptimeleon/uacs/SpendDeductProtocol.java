@@ -3,10 +3,9 @@ package org.cryptimeleon.uacs;
 import org.cryptimeleon.craco.protocols.CommonInput;
 import org.cryptimeleon.craco.protocols.SecretInput;
 import org.cryptimeleon.craco.protocols.arguments.InteractiveArgument;
-import org.cryptimeleon.craco.protocols.arguments.sigma.SigmaProtocol;
 import org.cryptimeleon.craco.protocols.base.BaseProtocol;
 import org.cryptimeleon.craco.protocols.base.BaseProtocolInstance;
-import org.cryptimeleon.craco.protocols.base.BaseSchnorrProof;
+import org.cryptimeleon.craco.protocols.base.AdHocSchnorrProof;
 import org.cryptimeleon.craco.sig.ps.PSExtendedVerificationKey;
 import org.cryptimeleon.craco.sig.ps.PSSignature;
 import org.cryptimeleon.craco.sig.ps.PSSigningKey;
@@ -140,8 +139,8 @@ public class SpendDeductProtocol extends BaseProtocol {
                     send("sigma1prime", sigma1prime.getRepresentation());
 
                     //Run proof
-                    runArgumentConcurrently("spendProof", getSpendProof().instantiateProver(null, BaseSchnorrProof.witnessOf(this)));
-                    getSpendProof().debugProof(null, BaseSchnorrProof.witnessOf(this));
+                    runArgumentConcurrently("spendProof", getSpendProof().instantiateProver(null, AdHocSchnorrProof.witnessOf(this)));
+                    getSpendProof().debugProof(null, AdHocSchnorrProof.witnessOf(this));
                 }
                 case 4 -> { //Proof response
                     //Nothing to do.
@@ -205,7 +204,7 @@ public class SpendDeductProtocol extends BaseProtocol {
             BilinearMap e = pp.group.getBilinearMap();
             if (sigma0prime.isNeutralElement())
                 throw new IllegalStateException("sigma0 is the neutral group element");
-            return BaseSchnorrProof.builder(pp.zp)
+            return AdHocSchnorrProof.builder(pp.zp)
                     .addLinearExponentStatement("uskSchnorrTrick", schnorrTrickC.isEqualTo(gamma.asExponentExpression().mul("usk").add("dsrnd")))
                     .addLinearStatement("psVerify",
                             e.applyExpr(sigma0prime, pk.getGroup2ElementTildeX().op(pk.getGroup2ElementsTildeYi().expr().innerProduct(Vector.of("usk", "dsid", "dsrnd", "v"))))

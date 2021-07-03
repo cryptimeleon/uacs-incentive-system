@@ -5,17 +5,14 @@ import org.cryptimeleon.craco.protocols.SecretInput;
 import org.cryptimeleon.craco.protocols.arguments.InteractiveArgument;
 import org.cryptimeleon.craco.protocols.base.BaseProtocol;
 import org.cryptimeleon.craco.protocols.base.BaseProtocolInstance;
-import org.cryptimeleon.craco.protocols.base.BaseSchnorrProof;
+import org.cryptimeleon.craco.protocols.base.AdHocSchnorrProof;
 import org.cryptimeleon.craco.sig.ps.PSExtendedVerificationKey;
 import org.cryptimeleon.craco.sig.ps.PSSignature;
 import org.cryptimeleon.craco.sig.ps.PSSigningKey;
 import org.cryptimeleon.math.structures.cartesian.Vector;
 import org.cryptimeleon.math.structures.groups.GroupElement;
 import org.cryptimeleon.math.structures.groups.elliptic.BilinearMap;
-import org.cryptimeleon.math.structures.rings.cartesian.RingElementVector;
 import org.cryptimeleon.math.structures.rings.zn.Zn;
-
-import java.math.BigInteger;
 
 public class CreditEarnProtocol extends BaseProtocol {
     private UacsIncentiveSystem pp;
@@ -92,7 +89,7 @@ public class CreditEarnProtocol extends BaseProtocol {
                     send("sigma1prime", sigma1prime.getRepresentation());
 
                     //Prove valid signature
-                    runArgumentConcurrently("sigProof", getValidSignatureProof().instantiateProver(null, BaseSchnorrProof.witnessOf(this)));
+                    runArgumentConcurrently("sigProof", getValidSignatureProof().instantiateProver(null, AdHocSchnorrProof.witnessOf(this)));
                 }
                 case 2 -> { //send proof response
                     //Nothing to do
@@ -136,7 +133,7 @@ public class CreditEarnProtocol extends BaseProtocol {
             BilinearMap e = pp.group.getBilinearMap();
             if (sigma0prime.isNeutralElement())
                 throw new IllegalStateException("sigma0 is the neutral group element");
-            return BaseSchnorrProof.builder(pp.zp)
+            return AdHocSchnorrProof.builder(pp.zp)
                     .addLinearStatement("psVerify",
                             e.applyExpr(sigma0prime, pk.getGroup2ElementTildeX().op(pk.getGroup2ElementsTildeYi().expr().innerProduct(Vector.of("usk", "dsid", "dsrnd", "v"))))
                             .isEqualTo(e.applyExpr(sigma1prime.op(sigma0prime.inv().pow("rPrime")), pk.getGroup2ElementTildeG()))

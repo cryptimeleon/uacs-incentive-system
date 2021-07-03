@@ -5,7 +5,7 @@ import org.cryptimeleon.craco.protocols.SecretInput;
 import org.cryptimeleon.craco.protocols.arguments.InteractiveArgument;
 import org.cryptimeleon.craco.protocols.base.BaseProtocol;
 import org.cryptimeleon.craco.protocols.base.BaseProtocolInstance;
-import org.cryptimeleon.craco.protocols.base.BaseSchnorrProof;
+import org.cryptimeleon.craco.protocols.base.AdHocSchnorrProof;
 import org.cryptimeleon.craco.sig.ps.PSExtendedVerificationKey;
 import org.cryptimeleon.craco.sig.ps.PSSignature;
 import org.cryptimeleon.craco.sig.ps.PSSigningKey;
@@ -97,7 +97,7 @@ public class IssueJoinProtocol extends BaseProtocol {
                     dsidPublic = pp.w.pow(dsid);
                     c = pk.getGroup1ElementsYi().innerProduct(RingElementVector.of(usk, dsid, dsrnd, pp.zp.getZeroElement())).op(pk.getGroup1ElementG().pow(r));
                     send("c", c.getRepresentation());
-                    runArgumentConcurrently("wellFormednessProof", getWellFormednessProof().instantiateProver(null, BaseSchnorrProof.witnessOf(this)));
+                    runArgumentConcurrently("wellFormednessProof", getWellFormednessProof().instantiateProver(null, AdHocSchnorrProof.witnessOf(this)));
                     break;
                 case 4: //prove well-formedness (response)
                     break;
@@ -145,7 +145,7 @@ public class IssueJoinProtocol extends BaseProtocol {
         }
 
         private InteractiveArgument getWellFormednessProof() {
-            return BaseSchnorrProof.builder(pp.zp)
+            return AdHocSchnorrProof.builder(pp.zp)
                     .addLinearStatement("psCommitOpen", c.isEqualTo(pk.getGroup1ElementsYi().expr().innerProduct(Vector.of("usk", "dsid", "dsrnd", pp.zp.getZeroElement())).op(pk.getGroup1ElementG().pow("r"))))
                     .addLinearStatement("upkWellFormed",  upk.isEqualTo(pp.w.pow("usk")))
                     .addLinearStatement("commitDsid0Open",  commitDsid0.isEqualTo(pp.g.pow("dsid").op(pp.h.pow("open"))))
