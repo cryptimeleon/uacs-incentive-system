@@ -26,6 +26,9 @@ public class UacsIncentiveSystem {
     public final SetMembershipPublicParameters zkpp;
     public final PSExtendedSignatureScheme psSigs;
     public final CommitmentScheme commitmentSchemeForDamgard;
+    public final int rangeBase = 256;
+    public final int rangePower = 8;
+    public final SetMembershipPublicParameters setMembershipPp;
 
     public UacsIncentiveSystem(BilinearGroup group) {
         this.group = group;
@@ -36,6 +39,7 @@ public class UacsIncentiveSystem {
         zkpp = SetMembershipPublicParameters.generateInterval(group, 0, 1000);
         psSigs = new PSExtendedSignatureScheme(new PSPublicParameters(group));
         commitmentSchemeForDamgard = new HashThenCommitCommitmentScheme(new PedersenCommitmentScheme(group.getG1(), 1), new SHA256HashFunction());
+        setMembershipPp = SetMembershipPublicParameters.generateInterval(group, 0, rangeBase);
     }
 
     public KeyPair<GroupElement, Zn.ZnElement> keyGen() {

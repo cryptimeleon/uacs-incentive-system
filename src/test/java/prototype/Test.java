@@ -31,5 +31,13 @@ public class Test {
         CreditEarnProtocol.CreditEarnProtocolInstance earnProviderInstance = earnProtocol.instantiateProvider(5, issuerKey.getSigningKey());
         earnProtocol.runProtocolLocally(earnUserInstance, earnProviderInstance);
         Token updatedToken = earnUserInstance.getUserResult();
+
+        //Spend
+        SpendDeductProtocol spendProtocol = new SpendDeductProtocol(incentiveSystem, issuerKey.getVerificationKey());
+        SpendDeductProtocol.SpendDeductProtocolInstance spendUserInstance = spendProtocol.instantiateUser(3, updatedToken);
+        SpendDeductProtocol.SpendDeductProtocolInstance spendProviderInstance = spendProtocol.instantiateProvider(3, updatedToken.dsid, issuerKey.getSigningKey());
+        spendProtocol.runProtocolLocally(spendUserInstance, spendProviderInstance);
+        Token lastToken = spendUserInstance.getUserResult();
+        DoubleSpendTag dstag = spendProviderInstance.getProviderResult();
     }
 }
