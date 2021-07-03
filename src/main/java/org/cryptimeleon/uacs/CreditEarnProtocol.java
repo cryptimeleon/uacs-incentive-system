@@ -99,7 +99,7 @@ public class CreditEarnProtocol extends BaseProtocol {
                     sigma1primeprime = pp.group.getG1().restoreElement(receive("sigma1primeprime"));
                     PSSignature sigmaStar = new PSSignature(sigma0primeprime, sigma1primeprime.op(sigma0primeprime.pow(rPrime.neg())));
                     resultToken = new Token(usk, dsid, dsrnd, v.add(pp.zp.valueOf(k)), sigmaStar);
-                    if (!pp.verifyToken(token, pk))
+                    if (!pp.verifyToken(resultToken, pk))
                         throw new IllegalStateException("Invalid signature");
                     terminate();
                 }

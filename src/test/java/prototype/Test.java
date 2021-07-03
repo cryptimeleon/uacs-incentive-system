@@ -7,12 +7,13 @@ import org.cryptimeleon.craco.sig.ps.PSSigningKey;
 import org.cryptimeleon.math.structures.groups.GroupElement;
 import org.cryptimeleon.math.structures.groups.elliptic.type3.bn.BarretoNaehrigBilinearGroup;
 import org.cryptimeleon.math.structures.rings.zn.Zn;
+import org.cryptimeleon.mclwrap.bn254.MclBilinearGroup;
 import org.cryptimeleon.uacs.*;
 
 public class Test {
     @org.junit.Test
     public void systemRun() {
-        UacsIncentiveSystem incentiveSystem = new UacsIncentiveSystem(new BarretoNaehrigBilinearGroup(80));
+        UacsIncentiveSystem incentiveSystem = new UacsIncentiveSystem(new MclBilinearGroup());
 
         //Keygen
         SignatureKeyPair<PSExtendedVerificationKey, PSSigningKey> issuerKey = incentiveSystem.issuerKeyGen();

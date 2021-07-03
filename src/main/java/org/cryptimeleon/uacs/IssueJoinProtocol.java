@@ -104,8 +104,8 @@ public class IssueJoinProtocol extends BaseProtocol {
                 case 6: //receive blinded signature and unblind
                     sigma0prime = pp.group.getG1().restoreElement(receive("sigma0prime"));
                     sigma1prime = pp.group.getG1().restoreElement(receive("sigma1prime")).op(sigma0prime.pow(r.neg()));
-                    //TODO verify token
-                    if (!pp.verifyToken(getUserResult(), pk))
+                    token = new Token(usk, dsid, dsrnd, pp.zp.getZeroElement(), new PSSignature(sigma0prime, sigma1prime));
+                    if (!pp.verifyToken(token, pk))
                         throw new IllegalStateException("Invalid token");
                     terminate();
                     break;
@@ -141,7 +141,7 @@ public class IssueJoinProtocol extends BaseProtocol {
         }
 
         public Token getUserResult() {
-            return new Token(usk, dsid, dsrnd, pp.zp.getZeroElement(), new PSSignature(sigma0prime, sigma1prime));
+            return token;
         }
 
         private InteractiveArgument getWellFormednessProof() {

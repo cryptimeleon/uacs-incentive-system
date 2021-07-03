@@ -113,7 +113,7 @@ public class SpendDeductProtocol extends BaseProtocol {
                     dsidStar = dsidStarUsr.add(dsidStarProvider);
                     dsrndStar = pp.zp.getUniformlyRandomElement();
                     rCommitmentC = pp.zp.getUniformlyRandomElement();
-                    commitmentC = pk.getGroup1ElementsYi().innerProduct(Vector.of(usk, dsidStar, dsrndStar, v.sub(pp.zp.valueOf(k)))).op(pp.g.pow(rCommitmentC)).compute();
+                    commitmentC = pk.getGroup1ElementsYi().innerProduct(Vector.of(usk, dsidStar, dsrndStar, v.sub(pp.zp.valueOf(k)))).op(pk.getGroup1ElementG().pow(rCommitmentC)).compute();
 
                     //Put usk into Schnorr trick
                     schnorrTrickC = usk.mul(gamma).add(dsrnd);
@@ -140,7 +140,7 @@ public class SpendDeductProtocol extends BaseProtocol {
 
                     //Run proof
                     runArgumentConcurrently("spendProof", getSpendProof().instantiateProver(null, AdHocSchnorrProof.witnessOf(this)));
-                    getSpendProof().debugProof(null, AdHocSchnorrProof.witnessOf(this));
+                    //getSpendProof().debugProof(null, AdHocSchnorrProof.witnessOf(this));
                 }
                 case 4 -> { //Proof response
                     //Nothing to do.
@@ -150,7 +150,7 @@ public class SpendDeductProtocol extends BaseProtocol {
                     sigma1primeprime = pp.group.getG1().restoreElement(receive("sigma1primeprime"));
                     PSSignature sigmaStar = new PSSignature(sigma0primeprime, sigma1primeprime.op(sigma0primeprime.pow(rCommitmentC.neg())).compute());
                     resultToken = new Token(usk, dsidStar, dsrndStar, v.sub(pp.zp.valueOf(k)), sigmaStar);
-                    if (!pp.verifyToken(token, pk))
+                    if (!pp.verifyToken(resultToken, pk))
                         throw new IllegalStateException("Invalid signature");
                     terminate();
                 }
@@ -182,8 +182,8 @@ public class SpendDeductProtocol extends BaseProtocol {
                 }
                 case 5 -> { //check proof (implicit) and send updated signature. Output dstag.
                     Zn.ZnElement rPrimeprimeprime = pp.zp.getUniformlyRandomNonzeroElement();
-                    sigma0primeprime = pp.g.pow(rPrimeprimeprime).compute();
-                    sigma1primeprime = commitmentC.op(pp.g.pow(sk.getExponentX())).pow(rPrimeprimeprime).compute();
+                    sigma0primeprime = pk.getGroup1ElementG().pow(rPrimeprimeprime).compute();
+                    sigma1primeprime = commitmentC.op(pk.getGroup1ElementG().pow(sk.getExponentX())).pow(rPrimeprimeprime).compute();
                     dstag = new DoubleSpendTag(schnorrTrickC, gamma, ctrace0, ctrace1);
                     send("sigma0primeprime", sigma0primeprime.getRepresentation());
                     send("sigma1primeprime", sigma1primeprime.getRepresentation());
@@ -212,7 +212,7 @@ public class SpendDeductProtocol extends BaseProtocol {
                     .addSmallerThanPowerStatement("enoughPoints", new BasicNamedExponentVariableExpr("v").sub(k), pp.rangeBase, pp.rangePower, pp.setMembershipPp)
                     .addLinearStatement("ctrace0open", ctrace0.isEqualTo(pp.w.pow("r")))
                     .addLinearStatement("ctrace1open", ctrace1.isEqualTo(ctrace0.pow("usk").op(pp.w.pow("dsidStar"))))
-                    .addLinearStatement("updatedMessageOpen", commitmentC.isEqualTo(pk.getGroup1ElementsYi().expr().innerProduct(Vector.of("usk", "dsidStar", "dsrndStar", pp.zp.valueOf(k).neg().asExponentExpression().add("v"))).op(pp.g.pow("rCommitmentC"))))
+                    .addLinearStatement("updatedMessageOpen", commitmentC.isEqualTo(pk.getGroup1ElementsYi().expr().innerProduct(Vector.of("usk", "dsidStar", "dsrndStar", pp.zp.valueOf(k).neg().asExponentExpression().add("v"))).op(pk.getGroup1ElementG().pow("rCommitmentC"))))
                     .addLinearStatement("encryptionOfDsidStar0", Cdsidstar0.isEqualTo(pp.g.pow("dsidStar").op(pp.h.pow("openStar"))))
                     .addLinearStatement("encryptionOfDsidStar1", Cdsidstar1.isEqualTo(pp.g.pow("openStar")))
                     .buildInteractiveDamgard(pp.commitmentSchemeForDamgard);
