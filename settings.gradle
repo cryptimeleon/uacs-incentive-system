@@ -9,6 +9,4 @@
 
 rootProject.name = 'uacs_incentives'
 
-includeBuild "../math"
-includeBuild "../craco"
-includeBuild "../mclwrap"
+includeBuild("../mclwrap")
