@@ -171,5 +171,50 @@ public class Benchmark {
         } catch (RuntimeException e) {
             e.printStackTrace();
         }
+
+        //Count user ops
+        //TODO add ability to count towards buckets
+        try {
+            Benchmark benchmark = new Benchmark();
+            DebugBilinearGroup bilinearGroup = new DebugBilinearGroup(254, BilinearGroup.Type.TYPE_3);
+            benchmark.setup(bilinearGroup);
+
+            int iterations = 1;
+
+            bilinearGroup.resetCounters();
+            for (int i = 0; i < iterations; i++)
+                benchmark.join();
+            System.out.println("Join User");
+            System.out.println(bilinearGroup.formatCounterData());
+            System.out.println();
+            System.out.println("Join Provider");
+            System.out.println(bilinearGroupProvider.formatCounterData());
+            System.out.println();
+
+            bilinearGroup.resetCounters();
+            bilinearGroupProvider.resetCounters();
+            for (int i = 0; i < iterations; i++)
+                benchmark.earn(100);
+            System.out.println("Earn User");
+            System.out.println(bilinearGroup.formatCounterData());
+            System.out.println();
+            System.out.println("Earn Provider");
+            System.out.println(bilinearGroupProvider.formatCounterData());
+            System.out.println();
+
+            bilinearGroup.resetCounters();
+            bilinearGroupProvider.resetCounters();
+            for (int i = 0; i < iterations; i++)
+                benchmark.spend(20);
+            System.out.println("Spend User");
+            System.out.println(bilinearGroup.formatCounterData());
+            System.out.println();
+            System.out.println("Spend Provider");
+            System.out.println(bilinearGroupProvider.formatCounterData());
+            System.out.println();
+        } catch (RuntimeException e) {
+            e.printStackTrace();
+        }
+
     }
 }

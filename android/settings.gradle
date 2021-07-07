@@ -1,0 +1,8 @@
+rootProject.name = "Android Demo"
+include ':app'
+
+//sourceControl {
+//    gitRepository("https://github.com/cryptimeleon/uacs_incentives.git") {
+//        producesModule("org.cryptimeleon:uacs_incentives")
+//    }
+//}
