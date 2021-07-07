@@ -4,11 +4,15 @@ import org.cryptimeleon.craco.protocols.TwoPartyProtocolInstance;
 import org.cryptimeleon.craco.sig.SignatureKeyPair;
 import org.cryptimeleon.craco.sig.ps.PSExtendedVerificationKey;
 import org.cryptimeleon.craco.sig.ps.PSSigningKey;
+import org.cryptimeleon.craco.sig.ps.PSVerificationKey;
 import org.cryptimeleon.math.serialization.Representation;
 import org.cryptimeleon.math.structures.groups.GroupElement;
+import org.cryptimeleon.math.structures.groups.debug.DebugBilinearGroup;
+import org.cryptimeleon.math.structures.groups.elliptic.BilinearGroup;
 import org.cryptimeleon.math.structures.rings.zn.Zn;
 import org.cryptimeleon.mclwrap.bn254.MclBilinearGroup;
 import org.cryptimeleon.uacs.*;
+import org.junit.Test;
 
 public class Benchmark {
     UacsIncentiveSystem incentiveSystem;
@@ -20,10 +24,8 @@ public class Benchmark {
     long userTime, providerTime;
     long currentPhaseStart;
 
-    public void setup() {
-        incentiveSystem = new UacsIncentiveSystem(new MclBilinearGroup());
-        issuerKey = incentiveSystem.issuerKeyGen();
-        userKey = incentiveSystem.keyGen();
+    public void setup(BilinearGroup bilinearGroup) {
+        incentiveSystem = new UacsIncentiveSystem(bilinearGroup);
         try {
             Thread.sleep(1000);
         } catch (InterruptedException e) {
@@ -146,7 +148,7 @@ public class Benchmark {
     public static void main(String[] args) {
         try {
             Benchmark benchmark = new Benchmark();
-            benchmark.setup();
+            benchmark.setup(new MclBilinearGroup());
             int iterations = 100;
 
             benchmark.resetTimes();

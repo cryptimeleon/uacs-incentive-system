@@ -115,19 +115,19 @@ public class IssueJoinProtocol extends BaseProtocol {
         @Override
         protected void doRoundForSecondRole(int round) { //provider
             switch (round) {
-                case 1 -> { //send provider share of dsid
+                case 1: //send provider share of dsid
                     commitUser0 = pp.group.getG1().restoreElement(receive("Cusr0"));
                     commitUser1 = pp.group.getG1().restoreElement(receive("Cusr1"));
                     dsidPrvdr = pp.zp.getUniformlyRandomElement();
                     send("dsidPrvdr", dsidPrvdr.getRepresentation());
                     commitDsid0 = commitUser0.op(pp.g.pow(dsidPrvdr)).compute();
                     commitDsid1 = commitUser1;
-                }
-                case 3 -> { //check well-formedness (send challenge)
+                    break;
+                case 3: //check well-formedness (send challenge)
                     c = pp.group.getG1().restoreElement(receive("c"));
                     runArgumentConcurrently("wellFormednessProof", getWellFormednessProof().instantiateVerifier(null));
-                }
-                case 5 -> { //check well-formedness (got last message). Send signature if valid.
+                    break;
+                case 5: //check well-formedness (got last message). Send signature if valid.
                     //Check happens implicitly
                     //Signature:
                     Zn.ZnElement r = pp.zp.getUniformlyRandomNonzeroElement();
@@ -136,7 +136,7 @@ public class IssueJoinProtocol extends BaseProtocol {
                     send("sigma0prime", sigma0prime.getRepresentation());
                     send("sigma1prime", sigma1prime.getRepresentation());
                     terminate();
-                }
+                    break;
             }
         }
 

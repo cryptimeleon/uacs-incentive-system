@@ -1,6 +1,10 @@
 plugins {
-    id 'java'
+    id 'java-library'
+    id 'maven-publish'
 }
+
+version = "1.0.0-SNAPSHOT"
+group = "org.cryptimeleon"
 
 dependencies {
     // Use JUnit test framework
@@ -8,6 +12,7 @@ dependencies {
     
     repositories {
 	    mavenCentral()
+        mavenLocal()
 	}
 
     test {
@@ -19,4 +24,20 @@ dependencies {
         implementation group: 'org.cryptimeleon', name: 'craco', version: '2.1.0'
         implementation group: 'org.cryptimeleon', name: 'mclwrap', version: '2.0.1-SNAPSHOT'
     }
+}
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            from components.java
+            versionMapping {
+                usage('java-api') {
+                    fromResolutionOf('runtimeClasspath')
+                }
+                usage('java-runtime') {
+                    fromResolutionResult()
+                }
+        }
+    }
+}
 }

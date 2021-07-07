@@ -13,6 +13,9 @@ import org.cryptimeleon.craco.sig.ps.*;
 import org.cryptimeleon.math.hash.impl.SHA256HashFunction;
 import org.cryptimeleon.math.hash.impl.VariableOutputLengthHashFunction;
 import org.cryptimeleon.math.serialization.Representation;
+import org.cryptimeleon.math.serialization.StandaloneRepresentable;
+import org.cryptimeleon.math.serialization.annotations.ReprUtil;
+import org.cryptimeleon.math.serialization.annotations.Represented;
 import org.cryptimeleon.math.structures.cartesian.Vector;
 import org.cryptimeleon.math.structures.groups.GroupElement;
 import org.cryptimeleon.math.structures.groups.elliptic.BilinearGroup;
@@ -24,15 +27,23 @@ import java.math.BigInteger;
 /**
  * System as outlined in Appendix E of https://eprint.iacr.org/2019/169
  */
-public class UacsIncentiveSystem {
-    public final BilinearGroup group;
-    public final Zn zp;
-    public final GroupElement w, g,h;
-    public final PSExtendedSignatureScheme psSigs;
-    public final CommitmentScheme commitmentSchemeForDamgard;
-    public final int rangeBase = 256;
-    public final int rangePower = 8;
-    public final SetMembershipPublicParameters setMembershipPp;
+public class UacsIncentiveSystem implements StandaloneRepresentable {
+    @Represented
+    public BilinearGroup group;
+    @Represented(restorer = "group::getZn")
+    public Zn zp;
+    @Represented(restorer = "group::getG1")
+    public GroupElement w, g,h;
+    @Represented
+    public PSExtendedSignatureScheme psSigs;
+    @Represented
+    public CommitmentScheme commitmentSchemeForDamgard;
+    @Represented
+    public Integer rangeBase = 256;
+    @Represented
+    public Integer rangePower = 8;
+    @Represented(restorer = "setMembershipRestorer")
+    public SetMembershipPublicParameters setMembershipPp;
 
     public UacsIncentiveSystem(BilinearGroup group) {
         this.group = group;
@@ -43,6 +54,13 @@ public class UacsIncentiveSystem {
         psSigs = new PSExtendedSignatureScheme(new PSPublicParameters(group));
         commitmentSchemeForDamgard = DamgardTechnique.generateCommitmentScheme(group.getG1());
         setMembershipPp = SetMembershipPublicParameters.generateInterval(group, 0, rangeBase);
+    }
+
+    public UacsIncentiveSystem(Representation repr) {
+        new ReprUtil(this).register(r -> new SetMembershipPublicParameters(group, r), "setMembershipRestorer").deserialize(repr);
+        w.precomputePow();
+        g.precomputePow();
+        h.precomputePow();
     }
 
     public KeyPair<GroupElement, Zn.ZnElement> keyGen() {
@@ -58,6 +76,11 @@ public class UacsIncentiveSystem {
     public boolean verifyToken(Token token, PSVerificationKey issuerPk) {
         Vector<RingElementPlainText> signedMessage = token.getMessageVector().map(RingElementPlainText::new);
         return psSigs.verify(issuerPk, token.sig, signedMessage);
+    }
+
+    @Override
+    public Representation getRepresentation() {
+        return ReprUtil.serialize(this);
     }
 
     public static class ProviderInput implements SecretInput {

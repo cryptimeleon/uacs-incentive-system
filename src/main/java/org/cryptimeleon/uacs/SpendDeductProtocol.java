@@ -94,15 +94,15 @@ public class SpendDeductProtocol extends BaseProtocol {
         @Override
         protected void doRoundForFirstRole(int round) { //user
             switch (round) {
-                case 0 -> { //choose dsidStarUser and commit to it
+                case 0: //choose dsidStarUser and commit to it
                     dsidStarUsr = pp.zp.getUniformlyRandomElement();
                     openStar = pp.zp.getUniformlyRandomElement();
                     CstarUser0 = pp.g.pow(dsidStarUsr).op(pp.h.pow(openStar)).compute();
                     CstarUser1 = pp.g.pow(openStar).compute();
                     send("CstarUser0", CstarUser0.getRepresentation());
                     send("CstarUser1", CstarUser1.getRepresentation());
-                }
-                case 2 -> { //Prepare updated credential values and run proof
+                    break;
+                case 2: //Prepare updated credential values and run proof
                     gamma = pp.zp.restoreElement(receive("gamma"));
                     dsidStarProvider = pp.zp.restoreElement(receive("dsidStarProvider"));
 
@@ -141,11 +141,11 @@ public class SpendDeductProtocol extends BaseProtocol {
                     //Run proof
                     runArgumentConcurrently("spendProof", getSpendProof().instantiateProver(null, AdHocSchnorrProof.witnessOf(this)));
                     //getSpendProof().debugProof(null, AdHocSchnorrProof.witnessOf(this));
-                }
-                case 4 -> { //Proof response
+                    break;
+                case 4: //Proof response
                     //Nothing to do.
-                }
-                case 6 -> { //receive blinded signature and unblind
+                    break;
+                case 6: //receive blinded signature and unblind
                     sigma0primeprime = pp.group.getG1().restoreElement(receive("sigma0primeprime"));
                     sigma1primeprime = pp.group.getG1().restoreElement(receive("sigma1primeprime"));
                     PSSignature sigmaStar = new PSSignature(sigma0primeprime, sigma1primeprime.op(sigma0primeprime.pow(rCommitmentC.neg())).compute());
@@ -153,14 +153,14 @@ public class SpendDeductProtocol extends BaseProtocol {
                     if (!pp.verifyToken(resultToken, pk))
                         throw new IllegalStateException("Invalid signature");
                     terminate();
-                }
+                    break;
             }
         }
 
         @Override
         protected void doRoundForSecondRole(int round) { //provider
             switch (round) {
-                case 1 -> { //receive commitment to user share of dsidStar, reply with gamma and provider's share.
+                case 1: //receive commitment to user share of dsidStar, reply with gamma and provider's share.
                     CstarUser0 = pp.group.getG1().restoreElement(receive("CstarUser0"));
                     CstarUser1 = pp.group.getG1().restoreElement(receive("CstarUser1"));
                     gamma = pp.zp.getUniformlyRandomElement();
@@ -169,8 +169,8 @@ public class SpendDeductProtocol extends BaseProtocol {
                     send("dsidStarProvider", dsidStarProvider.getRepresentation());
                     Cdsidstar0 = CstarUser0.op(pp.g.pow(dsidStarProvider)).compute();
                     Cdsidstar1 = CstarUser1;
-                }
-                case 3 -> { //Receive stuff and send proof challenge
+                    break;
+                case 3: //Receive stuff and send proof challenge
                     commitmentC = pp.group.getG1().restoreElement(receive("C"));
                     schnorrTrickC = pp.zp.restoreElement(receive("c"));
                     ctrace0 = pp.group.getG1().restoreElement(receive("ctrace0"));
@@ -179,8 +179,8 @@ public class SpendDeductProtocol extends BaseProtocol {
                     sigma1prime = pp.group.getG1().restoreElement(receive("sigma1prime"));
 
                     runArgumentConcurrently("spendProof", getSpendProof().instantiateVerifier(null));
-                }
-                case 5 -> { //check proof (implicit) and send updated signature. Output dstag.
+                    break;
+                case 5: //check proof (implicit) and send updated signature. Output dstag.
                     Zn.ZnElement rPrimeprimeprime = pp.zp.getUniformlyRandomNonzeroElement();
                     sigma0primeprime = pk.getGroup1ElementG().pow(rPrimeprimeprime).compute();
                     sigma1primeprime = commitmentC.op(pk.getGroup1ElementG().pow(sk.getExponentX())).pow(rPrimeprimeprime).compute();
@@ -188,7 +188,7 @@ public class SpendDeductProtocol extends BaseProtocol {
                     send("sigma0primeprime", sigma0primeprime.getRepresentation());
                     send("sigma1primeprime", sigma1primeprime.getRepresentation());
                     terminate();
-                }
+                    break;
             }
         }
 

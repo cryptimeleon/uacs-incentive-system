@@ -79,7 +79,7 @@ public class CreditEarnProtocol extends BaseProtocol {
         @Override
         protected void doRoundForFirstRole(int round) { //user
             switch (round) {
-                case 0 -> { //send randomized signature and start proof
+                case 0: //send randomized signature and start proof
                     //Randomize signature
                     rPrime = pp.zp.getUniformlyRandomElement();
                     Zn.ZnElement r = pp.zp.getUniformlyRandomNonzeroElement();
@@ -90,11 +90,11 @@ public class CreditEarnProtocol extends BaseProtocol {
 
                     //Prove valid signature
                     runArgumentConcurrently("sigProof", getValidSignatureProof().instantiateProver(null, AdHocSchnorrProof.witnessOf(this)));
-                }
-                case 2 -> { //send proof response
+                    break;
+                case 2: //send proof response
                     //Nothing to do
-                }
-                case 4 -> { //receive blinded signature and unblind
+                    break;
+                case 4:  //receive blinded signature and unblind
                     sigma0primeprime = pp.group.getG1().restoreElement(receive("sigma0primeprime"));
                     sigma1primeprime = pp.group.getG1().restoreElement(receive("sigma1primeprime"));
                     PSSignature sigmaStar = new PSSignature(sigma0primeprime, sigma1primeprime.op(sigma0primeprime.pow(rPrime.neg())));
@@ -102,26 +102,26 @@ public class CreditEarnProtocol extends BaseProtocol {
                     if (!pp.verifyToken(resultToken, pk))
                         throw new IllegalStateException("Invalid signature");
                     terminate();
-                }
+                    break;
             }
         }
 
         @Override
         protected void doRoundForSecondRole(int round) { //provider
             switch (round) {
-                case 1 -> { //receive randomized signature and send proof challenge
+                case 1: //receive randomized signature and send proof challenge
                     sigma0prime = pp.group.getG1().restoreElement(receive("sigma0prime"));
                     sigma1prime = pp.group.getG1().restoreElement(receive("sigma1prime"));
                     runArgumentConcurrently("sigProof", getValidSignatureProof().instantiateVerifier(null));
-                }
-                case 3 -> { //check proof (implicit) and send updated signature
+                    break;
+                case 3: //check proof (implicit) and send updated signature
                     Zn.ZnElement rPrimeprime = pp.zp.getUniformlyRandomNonzeroElement();
                     sigma0primeprime = sigma0prime.pow(rPrimeprime).compute();
                     sigma1primeprime = sigma1prime.op(sigma0prime.pow(sk.getExponentsYi().get(3).mul(k))).pow(rPrimeprime).compute();
                     send("sigma0primeprime", sigma0primeprime.getRepresentation());
                     send("sigma1primeprime", sigma1primeprime.getRepresentation());
                     terminate();
-                }
+                    break;
             }
         }
 
