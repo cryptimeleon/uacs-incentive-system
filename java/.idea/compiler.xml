@@ -5,9 +5,6 @@
       <module name="craco" target="1.8" />
       <module name="craco.main" target="1.8" />
       <module name="craco.test" target="1.8" />
-      <module name="math" target="1.8" />
-      <module name="math.main" target="1.8" />
-      <module name="math.test" target="1.8" />
       <module name="mclwrap" target="1.8" />
       <module name="mclwrap.main" target="1.8" />
       <module name="mclwrap.test" target="1.8" />
