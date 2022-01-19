@@ -26,6 +26,8 @@ public class Benchmark {
 
     public void setup(BilinearGroup bilinearGroup) {
         incentiveSystem = new UacsIncentiveSystem(bilinearGroup);
+        issuerKey = incentiveSystem.issuerKeyGen();
+        userKey = incentiveSystem.keyGen();
         try {
             Thread.sleep(1000);
         } catch (InterruptedException e) {
@@ -35,12 +37,14 @@ public class Benchmark {
 
     public void join() {
         //Set up user
+        countTowards(true);
         startStopwatch();
         IssueJoinProtocol protocol = new IssueJoinProtocol(incentiveSystem, issuerKey.getVerificationKey());
         IssueJoinProtocol.IssueJoinProtocolInstance userInstance = protocol.instantiateUser(userKey.pk, userKey.sk);
         addTimeToUser();
 
         //Set up provider
+        countTowards(false);
         startStopwatch();
         IssueJoinProtocol protocol2 = new IssueJoinProtocol(incentiveSystem, issuerKey.getVerificationKey());
         IssueJoinProtocol.IssueJoinProtocolInstance providerInstance = protocol2.instantiateProvider(userKey.pk, issuerKey.getSigningKey());
@@ -50,6 +54,7 @@ public class Benchmark {
         runProtocol(userInstance, providerInstance);
 
         startStopwatch();
+        countTowards(true);
         token = userInstance.getUserResult();
         token.getRepresentation();
         addTimeToUser();
@@ -57,12 +62,14 @@ public class Benchmark {
 
     public void earn(int k) {
         //Set up user
+        countTowards(true);
         startStopwatch();
         CreditEarnProtocol earnProtocol = new CreditEarnProtocol(incentiveSystem, issuerKey.getVerificationKey());
         CreditEarnProtocol.CreditEarnProtocolInstance earnUserInstance = earnProtocol.instantiateUser(k, token);
         addTimeToUser();
 
         //Set up provider
+        countTowards(false);
         startStopwatch();
         CreditEarnProtocol earnProtocol2 = new CreditEarnProtocol(incentiveSystem, issuerKey.getVerificationKey());
         CreditEarnProtocol.CreditEarnProtocolInstance earnProviderInstance = earnProtocol2.instantiateProvider(k, issuerKey.getSigningKey());
@@ -70,6 +77,7 @@ public class Benchmark {
 
         runProtocol(earnUserInstance, earnProviderInstance);
 
+        countTowards(true);
         startStopwatch();
         token = earnUserInstance.getUserResult();
         token.getRepresentation();
@@ -78,11 +86,13 @@ public class Benchmark {
 
     public void spend(int k) {
         //Set up user
+        countTowards(true);
         startStopwatch();
         SpendDeductProtocol spendProtocol = new SpendDeductProtocol(incentiveSystem, issuerKey.getVerificationKey());
         SpendDeductProtocol.SpendDeductProtocolInstance spendUserInstance = spendProtocol.instantiateUser(k, token);
         addTimeToUser();
 
+        countTowards(false);
         startStopwatch();
         SpendDeductProtocol spendProtocol2 = new SpendDeductProtocol(incentiveSystem, issuerKey.getVerificationKey());
         SpendDeductProtocol.SpendDeductProtocolInstance spendProviderInstance = spendProtocol2.instantiateProvider(k, token.dsid, issuerKey.getSigningKey());
@@ -90,11 +100,13 @@ public class Benchmark {
 
         runProtocol(spendUserInstance, spendProviderInstance);
 
+        countTowards(true);
         startStopwatch();
         token = spendUserInstance.getUserResult();
         token.getRepresentation();
         addTimeToUser();
 
+        countTowards(false);
         startStopwatch();
         DoubleSpendTag dstag = spendProviderInstance.getProviderResult();
         dstag.getRepresentation();
@@ -107,6 +119,7 @@ public class Benchmark {
         Representation message = null;
 
         do {
+            countTowards(isUsersTurn);
             startStopwatch();
             message = currentParty.nextMessage(message);
             addTimeTo(isUsersTurn);
@@ -114,6 +127,12 @@ public class Benchmark {
             isUsersTurn = !isUsersTurn;
             currentParty = isUsersTurn ? userInstance : providerInstance;
         } while (!userInstance.hasTerminated() || !providerInstance.hasTerminated());
+    }
+
+    public void countTowards(boolean toUser) {
+        if (incentiveSystem.group instanceof DebugBilinearGroup) {
+            ((DebugBilinearGroup) incentiveSystem.group).setBucket(toUser ? "user" : "provider");
+        }
     }
 
     public void startStopwatch() {
@@ -176,41 +195,37 @@ public class Benchmark {
         //TODO add ability to count towards buckets
         try {
             Benchmark benchmark = new Benchmark();
-            DebugBilinearGroup bilinearGroup = new DebugBilinearGroup(254, BilinearGroup.Type.TYPE_3);
+            DebugBilinearGroup bilinearGroup = new DebugBilinearGroup(new MclBilinearGroup().size(), BilinearGroup.Type.TYPE_3);
             benchmark.setup(bilinearGroup);
 
-            int iterations = 1;
-
-            bilinearGroup.resetCounters();
-            for (int i = 0; i < iterations; i++)
-                benchmark.join();
+            bilinearGroup.resetCounters("user");
+            bilinearGroup.resetCounters("provider");
+            benchmark.join();
             System.out.println("Join User");
-            System.out.println(bilinearGroup.formatCounterData());
+            System.out.println(bilinearGroup.formatCounterData("user"));
             System.out.println();
             System.out.println("Join Provider");
-            System.out.println(bilinearGroupProvider.formatCounterData());
+            System.out.println(bilinearGroup.formatCounterData("provider"));
             System.out.println();
 
-            bilinearGroup.resetCounters();
-            bilinearGroupProvider.resetCounters();
-            for (int i = 0; i < iterations; i++)
-                benchmark.earn(100);
+            bilinearGroup.resetCounters("user");
+            bilinearGroup.resetCounters("provider");
+            benchmark.earn(100);
             System.out.println("Earn User");
-            System.out.println(bilinearGroup.formatCounterData());
+            System.out.println(bilinearGroup.formatCounterData("user"));
             System.out.println();
             System.out.println("Earn Provider");
-            System.out.println(bilinearGroupProvider.formatCounterData());
+            System.out.println(bilinearGroup.formatCounterData("provider"));
             System.out.println();
 
-            bilinearGroup.resetCounters();
-            bilinearGroupProvider.resetCounters();
-            for (int i = 0; i < iterations; i++)
-                benchmark.spend(20);
+            bilinearGroup.resetCounters("user");
+            bilinearGroup.resetCounters("provider");
+            benchmark.spend(30);
             System.out.println("Spend User");
-            System.out.println(bilinearGroup.formatCounterData());
+            System.out.println(bilinearGroup.formatCounterData("user"));
             System.out.println();
             System.out.println("Spend Provider");
-            System.out.println(bilinearGroupProvider.formatCounterData());
+            System.out.println(bilinearGroup.formatCounterData("provider"));
             System.out.println();
         } catch (RuntimeException e) {
             e.printStackTrace();
