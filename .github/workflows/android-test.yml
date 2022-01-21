@@ -1,13 +1,8 @@
-name: Default workflow
+name: Android test
 on:
   push:
     branches:
-      - develop
-      - main
-  pull_request:
-    branches:
-      - develop
-      - main
+      - '*'
   # Weekly builds
   schedule:
     - cron: '0 0 * * 0'
