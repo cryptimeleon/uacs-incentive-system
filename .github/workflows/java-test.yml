@@ -1,7 +1,9 @@
 name: Development Java CI
 
 on:
-  push
+  push:
+    branches: 
+      - '*'
   # Nightly builds to ensure dependencies don't break anything
   schedule:
     - cron: '0 0 * * *'
