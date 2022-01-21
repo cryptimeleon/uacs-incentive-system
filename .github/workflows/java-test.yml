@@ -1,12 +1,6 @@
 name: Java test
 
-on:
-  push:
-    branches: 
-      - '*'
-  # Nightly builds to ensure dependencies don't break anything
-  schedule:
-    - cron: '0 0 * * *'
+on: push
 
 jobs:
   build:

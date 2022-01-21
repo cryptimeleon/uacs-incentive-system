@@ -1,11 +1,5 @@
 name: Android test
-on:
-  push:
-    branches:
-      - '*'
-  # Weekly builds
-  schedule:
-    - cron: '0 0 * * 0'
+on: push
 defaults:
   run:
     shell: bash
